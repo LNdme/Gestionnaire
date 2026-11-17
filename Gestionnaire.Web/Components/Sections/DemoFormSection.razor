@@ -1,0 +1,166 @@
+@* Section « demo-form » : présentation à gauche, formulaire envoyé à POST /api/demo-requests à droite. *@
+@implements IDisposable
+@inject SiteContentService SiteContent
+@inject ILogger<DemoFormSection> Logger
+
+@{
+    var content = Section.Content;
+    var highlights = Strings(content, "highlights");
+    var studentCountOptions = Strings(content, "studentCountOptions");
+}
+<section class="demo-page">
+    <div>
+        @if (Has(content, "kicker") || Has(content, "formTitle"))
+        {
+            <span class="section-kicker">@Text(content, "kicker", Text(content, "formTitle"))</span>
+        }
+        <h1>@Page.Title</h1>
+        <p>@Page.Intro</p>
+        @if (highlights.Count > 0)
+        {
+            <ul class="plain-list">
+                @foreach (var highlight in highlights)
+                {
+                    <li>@highlight</li>
+                }
+            </ul>
+        }
+        @if (ContactPhone.IsSet(Settings?.ContactPhone) || ContactPhone.IsSet(Settings?.ContactWhatsApp))
+        {
+            <div class="call-panel">
+                <strong>@Text(content, "callTitle", "Vous préférez en parler de vive voix ?")</strong>
+                <p>@Text(content, "callText", "Appelez-nous directement : un conseiller vous répond et vous explique tout simplement.")</p>
+                <CallButtons Settings="Settings" ShowHours="true" />
+            </div>
+        }
+    </div>
+
+    @if (_submitted)
+    {
+        <div class="demo-form success-panel" role="status">
+            <span>@Text(content, "successTitle", "Demande reçue")</span>
+            @if (Has(content, "successHeading"))
+            {
+                <h2>@Text(content, "successHeading")</h2>
+            }
+            <p>@Text(content, "successMessage")</p>
+        </div>
+    }
+    else
+    {
+        <EditForm class="demo-form" Model="_request" OnValidSubmit="SubmitAsync" aria-label="@Text(content, "formTitle", "Demander une démonstration")">
+            <DataAnnotationsValidator />
+
+            @if (_error is not null)
+            {
+                <p class="form-error" role="alert">@_error</p>
+            }
+
+            <div class="form-field">
+                <label for="demo-name">@Text(content, "fullNameLabel", "Nom complet")</label>
+                <InputText id="demo-name" autocomplete="name" placeholder="@Text(content, "fullNamePlaceholder")" @bind-Value="_request.FullName" />
+                <ValidationMessage For="() => _request.FullName" />
+            </div>
+            <div class="form-field">
+                <label for="demo-school">@Text(content, "establishmentLabel", "Établissement")</label>
+                <InputText id="demo-school" autocomplete="organization" placeholder="@Text(content, "establishmentPlaceholder")" @bind-Value="_request.Establishment" />
+                <ValidationMessage For="() => _request.Establishment" />
+            </div>
+            <div class="form-field">
+                <label for="demo-phone">@Text(content, "phoneLabel", "Téléphone")</label>
+                <InputText id="demo-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="@Text(content, "phonePlaceholder", "+237 6 XX XX XX XX")" @bind-Value="_request.Phone" />
+                <ValidationMessage For="() => _request.Phone" />
+            </div>
+            <div class="form-field">
+                <label for="demo-email">@Text(content, "emailLabel", "Adresse e-mail") <span class="optional">@Text(content, "optionalHint", "(si vous en avez une)")</span></label>
+                <InputText id="demo-email" type="email" autocomplete="email" placeholder="@Text(content, "emailPlaceholder")" @bind-Value="_request.Email" />
+                <ValidationMessage For="() => _request.Email" />
+            </div>
+            <div class="form-field">
+                <label for="demo-students">@Text(content, "studentCountLabel", "Nombre approximatif d'élèves")</label>
+                <InputSelect id="demo-students" @bind-Value="_request.StudentCount">
+                    <option value="" disabled>Sélectionner</option>
+                    @foreach (var option in studentCountOptions)
+                    {
+                        <option value="@option">@option</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => _request.StudentCount" />
+            </div>
+            <div class="form-field">
+                <label for="demo-message">@Text(content, "messageLabel", "Votre besoin principal")</label>
+                <InputTextArea id="demo-message" rows="4" placeholder="@Text(content, "messagePlaceholder")" @bind-Value="_request.Message" />
+                <ValidationMessage For="() => _request.Message" />
+            </div>
+
+            <button class="button primary large" type="submit" disabled="@_submitting">
+                @(_submitting ? "Envoi en cours…" : Text(content, "submitLabel", "Envoyer ma demande"))
+                <Icon Name="arrow" Size="18" />
+            </button>
+            @if (Has(content, "note"))
+            {
+                <small>@Text(content, "note")</small>
+            }
+        </EditForm>
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource _disposal = new();
+    private DemoRequestInput _request = new();
+    private bool _submitting;
+    private bool _submitted;
+    private string? _error;
+
+    [Parameter, EditorRequired] public SitePageDto Page { get; set; } = default!;
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+    [CascadingParameter] public SiteSettingsDto? Settings { get; set; }
+
+    private async Task SubmitAsync()
+    {
+        if (_submitting)
+        {
+            return;
+        }
+
+        _submitting = true;
+        _error = null;
+        try
+        {
+            var result = await SiteContent.SubmitDemoRequestAsync(_request, _disposal.Token);
+            switch (result)
+            {
+                case DemoRequestResult.Sent:
+                    _submitted = true;
+                    _request = new();
+                    break;
+                case DemoRequestResult.Invalid:
+                    _error = "Vérifiez les informations saisies puis réessayez.";
+                    break;
+                default:
+                    _error = "Votre demande n'a pas pu être envoyée. Réessayez plus tard.";
+                    break;
+            }
+        }
+        catch (HttpRequestException exception)
+        {
+            Logger.LogError(exception, "L'API n'a pas pu recevoir la demande de démonstration.");
+            _error = "Votre demande n'a pas pu être envoyée. Réessayez plus tard.";
+        }
+        catch (OperationCanceledException exception) when (!_disposal.IsCancellationRequested)
+        {
+            Logger.LogWarning(exception, "Délai dépassé lors de l'envoi de la demande de démonstration.");
+            _error = "Le serveur met trop de temps à répondre. Réessayez dans un instant.";
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposal.Cancel();
+        _disposal.Dispose();
+    }
+}

@@ -1,0 +1,25 @@
+@* En-tête commun des sections : surtitre violet facultatif, titre et texte d'introduction. *@
+@if (!string.IsNullOrWhiteSpace(Kicker) || !string.IsNullOrWhiteSpace(Heading) || !string.IsNullOrWhiteSpace(Body))
+{
+    <div class="section-heading @Class">
+        @if (!string.IsNullOrWhiteSpace(Kicker))
+        {
+            <span class="section-kicker">@Kicker</span>
+        }
+        @if (!string.IsNullOrWhiteSpace(Heading))
+        {
+            <h2>@Heading</h2>
+        }
+        @if (!string.IsNullOrWhiteSpace(Body))
+        {
+            <p>@Body</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string? Kicker { get; set; }
+    [Parameter] public string? Heading { get; set; }
+    [Parameter] public string? Body { get; set; }
+    [Parameter] public string? Class { get; set; }
+}

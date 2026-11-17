@@ -1,0 +1,27 @@
+@* Bandeau d'appel à l'action sombre placé en bas des pages. *@
+@if (!string.IsNullOrWhiteSpace(Heading) && !string.IsNullOrWhiteSpace(ActionLabel))
+{
+    <section class="page-cta">
+        <div>
+            @if (!string.IsNullOrWhiteSpace(Kicker))
+            {
+                <span class="section-kicker light-kicker">@Kicker</span>
+            }
+            <h2>@Heading</h2>
+        </div>
+        <div class="page-cta-actions">
+            <a class="button light large" href="@ActionUrl">
+                @ActionLabel <Icon Name="arrow" Size="18" />
+            </a>
+            <CallButtons Settings="Settings" CallLabel="Ou appelez-nous" Light="true" Variant="cta-call" />
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string? Kicker { get; set; }
+    [Parameter] public string? Heading { get; set; }
+    [Parameter] public string? ActionLabel { get; set; }
+    [Parameter] public string ActionUrl { get; set; } = "/demo";
+    [CascadingParameter] public SiteSettingsDto? Settings { get; set; }
+}

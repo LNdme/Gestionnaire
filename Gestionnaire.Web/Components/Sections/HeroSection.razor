@@ -1,0 +1,98 @@
+@* Section « hero » de l'accueil : titre de la page, actions et aperçu de la plateforme.
+   Avec primaryActionUrl = « #video », l'action principale et l'aperçu ouvrent la vidéo de démo du site. *@
+@{
+    var content = Section.Content;
+    var highlight = Text(content, "titleHighlight");
+    var highlightIndex = string.IsNullOrWhiteSpace(highlight) ? -1 : Page.Title.IndexOf(highlight, StringComparison.Ordinal);
+    var reassurance = Strings(content, "reassurance");
+    var primaryUrl = Text(content, "primaryActionUrl", "/solution");
+    // « #video » : l'action principale ouvre la vidéo de démo des paramètres du site (si elle existe).
+    var hasVideo = !string.IsNullOrWhiteSpace(Settings?.DemoVideoUrl);
+    var playsVideo = primaryUrl == "#video" && hasVideo;
+}
+<section class="hero">
+    <div class="hero-copy">
+        @if (Has(content, "eyebrow"))
+        {
+            <div class="eyebrow">
+                <span class="eyebrow-dot"></span>
+                @Text(content, "eyebrow")
+            </div>
+        }
+        <h1>
+            @if (highlightIndex > 0)
+            {
+                @Page.Title[..highlightIndex]<br />
+                <span>@Page.Title[highlightIndex..]</span>
+            }
+            else
+            {
+                @Page.Title
+            }
+        </h1>
+        <p>@Page.Intro</p>
+        <div class="hero-actions">
+            @if (Has(content, "primaryActionLabel"))
+            {
+                @if (playsVideo)
+                {
+                    <DemoVideoButton Settings="Settings" CssClass="button primary large" Text="@Text(content, "primaryActionLabel")" />
+                }
+                else
+                {
+                    <a class="button primary large" href="@primaryUrl">
+                        @Text(content, "primaryActionLabel")
+                        <Icon Name="arrow" Size="18" />
+                    </a>
+                }
+            }
+            @if (Has(content, "secondaryActionLabel"))
+            {
+                <a class="text-link" href="@Text(content, "secondaryActionUrl", "/demo")">
+                    @Text(content, "secondaryActionLabel")
+                    <Icon Name="arrow" Size="18" />
+                </a>
+            }
+        </div>
+        @if (reassurance.Count > 0)
+        {
+            <div class="hero-reassurance">
+                @foreach (var line in reassurance)
+                {
+                    <span><Icon Name="check" Size="16" /> @line</span>
+                }
+            </div>
+        }
+    </div>
+
+    @if (Has(content, "imageUrl"))
+    {
+        <div class="product-stage" aria-label="Aperçu de la plateforme">
+            <div class="browser-frame">
+                <div class="browser-top">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <div class="browser-address">@PlatformHost</div>
+                </div>
+                <img src="@Text(content, "imageUrl")" alt="@Text(content, "imageAlt")" />
+                @if (playsVideo)
+                {
+                    <DemoVideoButton Settings="Settings" CssClass="video-launch" Text="@Text(content, "primaryActionLabel")">
+                        <span class="video-launch-button"><Icon Name="play" Size="26" /></span>
+                    </DemoVideoButton>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public SitePageDto Page { get; set; } = default!;
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+    [CascadingParameter] public SiteSettingsDto? Settings { get; set; }
+
+    // L'adresse affichée dans la fausse barre du navigateur est celle de la plateforme (lien de connexion).
+    private string PlatformHost =>
+        Uri.TryCreate(Settings?.LoginUrl, UriKind.Absolute, out var uri) ? uri.Host : string.Empty;
+}

@@ -1,0 +1,70 @@
+<footer>
+    <div class="footer-main">
+        <div>
+            <div class="footer-brand">
+                <Brand Settings="Settings" />
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Settings?.FooterDescription))
+            {
+                <p>@Settings.FooterDescription</p>
+            }
+        </div>
+        <div class="footer-links">
+            @if (Items.Count > 0)
+            {
+                <div>
+                    <strong>Découvrir</strong>
+                    @foreach (var item in Items)
+                    {
+                        <a href="@item.Url">@item.Label</a>
+                    }
+                </div>
+            }
+            @if (Settings is not null)
+            {
+                <div>
+                    <strong>Commencer</strong>
+                    <a href="@Settings.DemoActionUrl">@Settings.DemoActionLabel</a>
+                    <a href="@Settings.LoginUrl">@Settings.LoginLabel</a>
+                </div>
+                @if (ContactPhone.IsSet(Settings.ContactPhone) || ContactPhone.IsSet(Settings.ContactWhatsApp))
+                {
+                    <div class="footer-contact">
+                        <strong>Nous appeler</strong>
+                        @if (ContactPhone.IsSet(Settings.ContactPhone))
+                        {
+                            <a href="@ContactPhone.CallHref(Settings.ContactPhone)">
+                                <Icon Name="phone" Size="15" /> @ContactPhone.Display(Settings.ContactPhone)
+                            </a>
+                        }
+                        @if (ContactPhone.IsSet(Settings.ContactWhatsApp))
+                        {
+                            <a href="@ContactPhone.WhatsAppHref(Settings.ContactWhatsApp)" target="_blank" rel="noopener">
+                                <Icon Name="whatsapp" Size="15" /> WhatsApp
+                            </a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Settings.ContactHours))
+                        {
+                            <span>@Settings.ContactHours</span>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>© @DateTime.UtcNow.Year @(Settings?.SiteName ?? "Gestionnaire"). @Settings?.CopyrightNotice</span>
+        @if (!string.IsNullOrWhiteSpace(Settings?.FooterTagline))
+        {
+            <span>@Settings.FooterTagline</span>
+        }
+    </div>
+</footer>
+
+@code {
+    [Parameter]
+    public SiteSettingsDto? Settings { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<SiteNavigationItemDto> Items { get; set; } = [];
+}

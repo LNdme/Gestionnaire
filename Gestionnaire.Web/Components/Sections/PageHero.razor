@@ -1,0 +1,21 @@
+@* En-tête des pages intérieures : le surtitre reprend le libellé de navigation de la page. *@
+<section class="page-hero">
+    @if (!string.IsNullOrWhiteSpace(Kicker))
+    {
+        <span class="section-kicker">@Kicker</span>
+    }
+    <h1>@Page.Title</h1>
+    @if (!string.IsNullOrWhiteSpace(Page.Intro))
+    {
+        <p>@Page.Intro</p>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public SitePageDto Page { get; set; } = default!;
+    [CascadingParameter] public SiteNavigationItemDto[]? Navigation { get; set; }
+
+    private string? Kicker => Navigation?
+        .FirstOrDefault(item => string.Equals(item.Url.Trim('/'), Page.Slug, StringComparison.OrdinalIgnoreCase))?
+        .Label;
+}

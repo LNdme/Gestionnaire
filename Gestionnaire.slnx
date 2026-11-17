@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Gestionnaire.ApiService/Gestionnaire.ApiService.csproj" />
+  <Project Path="Gestionnaire.AppHost/Gestionnaire.AppHost.csproj" />
+  <Project Path="Gestionnaire.ServiceDefaults/Gestionnaire.ServiceDefaults.csproj" />
+  <Project Path="Gestionnaire.Tests/Gestionnaire.Tests.csproj" />
+  <Project Path="Gestionnaire.Web/Gestionnaire.Web.csproj" />
+</Solution>

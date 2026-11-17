@@ -1,0 +1,27 @@
+@*
+    Section « text » : surtitre (heading) et grande phrase (body).
+    content.variant = "statement" pour la version large ; content.description ajoute un paragraphe.
+*@
+@{
+    var content = Section.Content;
+    var statement = string.Equals(Text(content, "variant").Trim(), "statement", StringComparison.OrdinalIgnoreCase);
+}
+<section class="@(statement ? "about-statement" : "comparison-note")">
+    @if (!string.IsNullOrWhiteSpace(Section.Heading))
+    {
+        <span>@Section.Heading</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(Section.Body))
+    {
+        <h2>@Section.Body</h2>
+    }
+    @if (Has(content, "description"))
+    {
+        <p>@Text(content, "description")</p>
+    }
+    <SectionAction Content="content" Class="text-link section-action" />
+</section>
+
+@code {
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+}

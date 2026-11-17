@@ -1,0 +1,24 @@
+@* Marque du site : logo téléversé via l'API, sinon le pictogramme de la maquette. *@
+<a class="brand" href="/" aria-label="@($"{SiteName}, accueil")">
+    @if (!string.IsNullOrWhiteSpace(Settings?.LogoUrl))
+    {
+        <img class="brand-logo" src="@Settings.LogoUrl" alt="" />
+    }
+    else
+    {
+        <span class="brand-mark">
+            <svg viewBox="0 0 28 28" aria-hidden="true">
+                <path d="m4 10 10-5 10 5-10 5L4 10Z" />
+                <path d="M8 12.5V18c3.8 3.2 8.2 3.2 12 0v-5.5" />
+            </svg>
+        </span>
+    }
+    <span>@SiteName</span>
+</a>
+
+@code {
+    [Parameter]
+    public SiteSettingsDto? Settings { get; set; }
+
+    private string SiteName => string.IsNullOrWhiteSpace(Settings?.SiteName) ? "Gestionnaire" : Settings.SiteName;
+}

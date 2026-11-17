@@ -1,0 +1,83 @@
+@* Bouton qui ouvre la vidéo de démonstration (paramètres du site : DemoVideoUrl) dans une fenêtre.
+   Sans interactivité, le lien mène directement au fichier vidéo. Rien n'est affiché si aucune vidéo n'est définie. *@
+@if (HasVideo)
+{
+    <a class="@CssClass" href="@Settings!.DemoVideoUrl" @onclick="Open" @onclick:preventDefault
+       aria-label="@(ChildContent is null ? null : Label)">
+        @if (ChildContent is not null)
+        {
+            @ChildContent
+        }
+        else
+        {
+            <Icon Name="play" Size="@IconSize" />
+            @Label
+        }
+    </a>
+
+    @* La fenêtre est rendue dans la SectionOutlet « modals » de MainLayout : un parent avec backdrop-filter
+       (l'en-tête) ou overflow (l'aperçu) ne peut donc pas la décaler ni la couper. *@
+    @if (_open)
+    {
+        <SectionContent SectionName="modals">
+        <div class="video-modal" role="dialog" aria-modal="true" aria-label="@Title"
+             tabindex="-1" @ref="_modal" @onkeydown="OnKey" @onclick="Close">
+            <div class="video-modal-body" @onclick:stopPropagation>
+                <div class="video-modal-header">
+                    <span>@Title</span>
+                    <button type="button" class="video-modal-close" @onclick="Close" aria-label="Fermer la vidéo">
+                        <Icon Name="x" Size="20" />
+                    </button>
+                </div>
+                <video src="@Settings.DemoVideoUrl" poster="@NullIfEmpty(Settings.DemoVideoPosterUrl)"
+                       controls autoplay playsinline preload="metadata"></video>
+            </div>
+        </div>
+        </SectionContent>
+    }
+}
+
+@code {
+    [Parameter] public SiteSettingsDto? Settings { get; set; }
+    [Parameter] public string CssClass { get; set; } = "button primary";
+    [Parameter] public int IconSize { get; set; } = 18;
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _open;
+    private bool _focus;
+    private ElementReference _modal;
+
+    private bool HasVideo => !string.IsNullOrWhiteSpace(Settings?.DemoVideoUrl);
+    private string Label => !string.IsNullOrWhiteSpace(Text) ? Text :
+        !string.IsNullOrWhiteSpace(Settings?.DemoVideoLabel) ? Settings!.DemoVideoLabel : "Regarder la démo";
+    private string Title => !string.IsNullOrWhiteSpace(Settings?.DemoVideoTitle) ? Settings!.DemoVideoTitle : Label;
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private void Open()
+    {
+        _open = true;
+        _focus = true;
+    }
+
+    private void Close() => _open = false;
+
+    private void OnKey(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            _open = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // La fenêtre prend le focus à l'ouverture pour que la touche Échap la ferme aussitôt.
+        if (_focus && _open)
+        {
+            _focus = false;
+            await _modal.FocusAsync();
+        }
+    }
+}

@@ -1,0 +1,58 @@
+@page "/not-found"
+@inject SiteContentService SiteContent
+@inject ILogger<NotFound> Logger
+
+<PageTitle>Page introuvable</PageTitle>
+
+<section class="not-found">
+    <span>404</span>
+    <h1>Cette page n'existe pas.</h1>
+    <a class="button primary large" href="/">Revenir à l'accueil</a>
+
+    @if (Pages is { Length: > 0 })
+    {
+        <nav class="not-found-pages" aria-label="Pages du site">
+            <strong>Pages disponibles</strong>
+            @foreach (var item in Pages)
+            {
+                <a href="@(item.Slug == "home" ? "/" : $"/{item.Slug}")">@LabelFor(item)</a>
+            }
+        </nav>
+    }
+</section>
+
+@code {
+    // GET /api/pages : propose les pages publiées au visiteur égaré.
+    [PersistentState]
+    public SitePageDto[]? Pages { get; set; }
+
+    [CascadingParameter]
+    public SiteNavigationItemDto[]? NavigationItems { get; set; }
+
+    // Libellé court de la navigation lorsqu'il existe, sinon le titre éditorial de la page.
+    private string LabelFor(SitePageDto page) =>
+        page.Slug == "home"
+            ? "Accueil"
+            : NavigationItems?.FirstOrDefault(item =>
+                  string.Equals(item.Url.Trim('/'), page.Slug, StringComparison.OrdinalIgnoreCase))?.Label
+              ?? page.Title;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Pages is not null)
+        {
+            return;
+        }
+
+        try
+        {
+            Pages = (await SiteContent.GetPagesAsync()).ToArray();
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException)
+        {
+            // La page 404 doit rester affichable même sans la liste des pages.
+            Logger.LogWarning(exception, "Impossible de charger la liste des pages pour la page introuvable.");
+            Pages = [];
+        }
+    }
+}

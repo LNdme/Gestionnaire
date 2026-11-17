@@ -1,0 +1,134 @@
+@page "/"
+@page "/{Slug}"
+@implements IDisposable
+@inject SiteContentService SiteContent
+@inject NavigationManager Navigation
+
+@if (Page is null)
+{
+    <section class="page-hero page-loading" aria-busy="true" aria-live="polite">
+        <span class="section-kicker">Chargement</span>
+        <p>Chargement de la page…</p>
+    </section>
+}
+else
+{
+    var current = Page;
+    var sections = current.Sections.OrderBy(section => section.SortOrder).ToList();
+    var isLanding = sections.Any(section => IsType(section, "hero"));
+    var hasOwnHeader = isLanding || sections.Any(section => IsType(section, "demo-form"));
+    var hasCta = sections.Any(section => IsType(section, "cta") || IsType(section, "demo-form"));
+
+    <PageTitle>@(current.Slug == HomeSlug ? SiteName : $"{TitleFor(current)} · {SiteName}")</PageTitle>
+    <HeadContent>
+        <meta name="description" content="@current.MetaDescription" />
+    </HeadContent>
+
+    <main class="@(_loading ? "site-page is-refreshing" : "site-page")" aria-busy="@(_loading ? "true" : "false")">
+        @if (!hasOwnHeader)
+        {
+            <PageHero Page="current" />
+        }
+
+        @for (var i = 0; i < sections.Count; i++)
+        {
+            <SectionView @key="sections[i].Id" Page="current" Section="sections[i]" Index="i" IsLanding="isLanding" />
+        }
+
+        @if (!hasCta && Settings is not null)
+        {
+            <CtaSection Heading="@Settings.FooterDescription"
+                        ActionLabel="@Settings.DemoActionLabel"
+                        ActionUrl="@Settings.DemoActionUrl" />
+        }
+    </main>
+}
+
+@code {
+    private const string HomeSlug = "home";
+
+    private CancellationTokenSource? _cts;
+    private string? _requestedSlug;
+    private bool _loading;
+
+    [Parameter]
+    public string? Slug { get; set; }
+
+    [CascadingParameter]
+    public SiteSettingsDto? Settings { get; set; }
+
+    [CascadingParameter]
+    public SiteNavigationItemDto[]? NavigationItems { get; set; }
+
+    // Conservée entre le prérendu et le circuit interactif pour éviter un second appel à l'API.
+    [PersistentState]
+    public SitePageDto? Page { get; set; }
+
+    private string SiteName => string.IsNullOrWhiteSpace(Settings?.SiteName) ? "Gestionnaire" : Settings.SiteName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var slug = string.IsNullOrWhiteSpace(Slug) ? HomeSlug : Slug.Trim().ToLowerInvariant();
+        if (slug == _requestedSlug)
+        {
+            return;
+        }
+
+        _requestedSlug = slug;
+        if (Page is not null && string.Equals(Page.Slug, slug, StringComparison.OrdinalIgnoreCase))
+        {
+            return; // Page restaurée depuis le prérendu.
+        }
+
+        await LoadAsync(slug);
+    }
+
+    private async Task LoadAsync(string slug)
+    {
+        if (_cts is not null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+        }
+
+        _cts = new CancellationTokenSource();
+        var cancellationToken = _cts.Token;
+
+        // La page précédente reste affichée (atténuée) pendant le chargement de la suivante.
+        _loading = true;
+        try
+        {
+            var page = await SiteContent.GetPageAsync(slug, cancellationToken);
+            if (page is null)
+            {
+                Page = null;
+                Navigation.NotFound();
+                return;
+            }
+
+            Page = page;
+        }
+        finally
+        {
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                _loading = false;
+            }
+        }
+    }
+
+    private static bool IsType(SitePageSectionDto section, string type) =>
+        string.Equals(section.Type.Trim(), type, StringComparison.OrdinalIgnoreCase);
+
+    // Pour l'onglet du navigateur, on préfère le libellé de navigation au long titre éditorial.
+    private string TitleFor(SitePageDto page) =>
+        NavigationItems?.FirstOrDefault(item =>
+            string.Equals(item.Url.Trim('/'), page.Slug, StringComparison.OrdinalIgnoreCase))?.Label
+        ?? page.Title;
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}

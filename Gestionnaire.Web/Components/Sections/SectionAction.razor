@@ -1,0 +1,13 @@
+@* Lien d'action facultatif d'une section (content.actionLabel / content.actionUrl). *@
+@if (Has(Content, "actionLabel"))
+{
+    <a class="@Class" href="@Text(Content, "actionUrl", "/demo")">
+        @Text(Content, "actionLabel")
+        <Icon Name="arrow" Size="18" />
+    </a>
+}
+
+@code {
+    [Parameter, EditorRequired] public JsonElement Content { get; set; }
+    [Parameter] public string Class { get; set; } = "text-link";
+}

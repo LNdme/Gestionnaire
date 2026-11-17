@@ -1,0 +1,77 @@
+@*
+    Section « faq ». Accordéon sur une page d'atterrissage (avec hero), liste numérotée ailleurs.
+    content.variant = "accordion" ou "list" force la présentation.
+*@
+@{
+    var content = Section.Content;
+    var items = Items(content);
+}
+@if (UseAccordion)
+{
+    <section class="faq-section">
+        <div class="faq-title">
+            @if (Has(content, "kicker"))
+            {
+                <span class="section-kicker">@Text(content, "kicker")</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(Section.Heading))
+            {
+                <h2>@Section.Heading</h2>
+            }
+            @if (!string.IsNullOrWhiteSpace(Section.Body))
+            {
+                <p>@Section.Body</p>
+            }
+            <SectionAction Content="content" Class="text-link section-action" />
+        </div>
+        <div class="faq-list">
+            @for (var i = 0; i < items.Count; i++)
+            {
+                var index = i;
+                var isOpen = _openIndex == index;
+                <div class="faq-item">
+                    <button type="button" aria-expanded="@(isOpen ? "true" : "false")"
+                            aria-controls="@($"faq-{Section.Id}-{index}")"
+                            @onclick="() => Toggle(index)">
+                        @Text(items[index], "question")
+                        <span class="@(isOpen ? "rotate" : null)"><Icon Name="chevron" /></span>
+                    </button>
+                    <p id="@($"faq-{Section.Id}-{index}")" hidden="@(!isOpen)">@Text(items[index], "answer")</p>
+                </div>
+            }
+        </div>
+    </section>
+}
+else
+{
+    <section class="questions-page-list" aria-label="@(string.IsNullOrWhiteSpace(Section.Heading) ? null : Section.Heading)">
+        @for (var i = 0; i < items.Count; i++)
+        {
+            <article>
+                <span>@Number(i)</span>
+                <div>
+                    <h2>@Text(items[i], "question")</h2>
+                    <p>@Text(items[i], "answer")</p>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    private int _openIndex;
+
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+
+    /// <summary>Vrai lorsque la page possède son propre hero (page d'atterrissage).</summary>
+    [Parameter] public bool IsLanding { get; set; }
+
+    private bool UseAccordion => Text(Section.Content, "variant").Trim().ToLowerInvariant() switch
+    {
+        "accordion" => true,
+        "list" => false,
+        _ => IsLanding
+    };
+
+    private void Toggle(int index) => _openIndex = _openIndex == index ? -1 : index;
+}

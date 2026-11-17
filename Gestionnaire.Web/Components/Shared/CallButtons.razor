@@ -1,0 +1,44 @@
+@* Boutons « Appeler » (lien tel:) et « WhatsApp » à partir du numéro des paramètres du site.
+   Pensés pour les personnes qui préfèrent parler à quelqu'un plutôt que remplir un formulaire.
+   Rien n'est affiché tant que le numéro n'est pas renseigné. *@
+@if (ContactPhone.IsSet(Settings?.ContactPhone) || ContactPhone.IsSet(Settings?.ContactWhatsApp))
+{
+    <div class="call-buttons @Variant">
+        @if (ContactPhone.IsSet(Settings!.ContactPhone))
+        {
+            <a class="button call @(Light ? "light" : "primary") @Size" href="@ContactPhone.CallHref(Settings.ContactPhone)"
+               aria-label="Appeler le @ContactPhone.Display(Settings.ContactPhone)">
+                <Icon Name="phone" Size="18" />
+                <span>
+                    @CallLabel
+                    @if (ShowNumber)
+                    {
+                        <strong>@ContactPhone.Display(Settings.ContactPhone)</strong>
+                    }
+                </span>
+            </a>
+        }
+        @if (ContactPhone.IsSet(Settings.ContactWhatsApp))
+        {
+            <a class="button whatsapp @Size" href="@ContactPhone.WhatsAppHref(Settings.ContactWhatsApp)"
+               target="_blank" rel="noopener" aria-label="Écrire sur WhatsApp au @ContactPhone.Display(Settings.ContactWhatsApp)">
+                <Icon Name="whatsapp" Size="18" />
+                <span>WhatsApp</span>
+            </a>
+        }
+        @if (ShowHours && !string.IsNullOrWhiteSpace(Settings.ContactHours))
+        {
+            <small class="call-hours">@Settings.ContactHours</small>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public SiteSettingsDto? Settings { get; set; }
+    [Parameter] public string CallLabel { get; set; } = "Appeler";
+    [Parameter] public bool ShowNumber { get; set; } = true;
+    [Parameter] public bool ShowHours { get; set; }
+    [Parameter] public bool Light { get; set; }
+    [Parameter] public string Size { get; set; } = "large";
+    [Parameter] public string Variant { get; set; } = string.Empty;
+}

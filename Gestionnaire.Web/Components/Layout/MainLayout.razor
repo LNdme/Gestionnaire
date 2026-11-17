@@ -1,0 +1,96 @@
+﻿@inherits LayoutComponentBase
+@inject SiteContentService SiteContent
+@inject ILogger<MainLayout> Logger
+
+@if (!string.IsNullOrWhiteSpace(Settings?.LogoUrl))
+{
+    <HeadContent>
+        <link rel="icon" href="@Settings.LogoUrl" />
+    </HeadContent>
+}
+
+<SiteHeader Settings="Settings" Items="NavigationItems" />
+
+@if (_chromeUnavailable)
+{
+    <p class="site-notice" role="status">
+        Certaines informations du site sont momentanément indisponibles.
+    </p>
+}
+
+<CascadingValue Value="Settings">
+<CascadingValue Value="Navigation">
+    <ErrorBoundary @ref="_errorBoundary">
+        <ChildContent>
+            @Body
+        </ChildContent>
+        <ErrorContent>
+            <section class="not-found" role="alert">
+                <span>Erreur</span>
+                <h1>Le contenu ne peut pas être affiché pour le moment.</h1>
+                <p class="not-found-text">Réessayez dans quelques instants.</p>
+                <button class="button primary large" type="button" @onclick="() => _errorBoundary?.Recover()">
+                    Réessayer
+                </button>
+            </section>
+        </ErrorContent>
+    </ErrorBoundary>
+</CascadingValue>
+</CascadingValue>
+
+<SiteFooter Settings="Settings" Items="NavigationItems" />
+
+<SectionOutlet SectionName="modals" />
+
+@* Sur téléphone : barre fixe pour appeler ou écrire sur WhatsApp en un geste, sur toutes les pages. *@
+<CallButtons Settings="Settings" Variant="floating-call" Size="" ShowNumber="false" />
+
+<div id="blazor-error-ui">
+    Une erreur inattendue s'est produite.
+    <a href="" class="reload">Recharger</a>
+    <a class="dismiss">Fermer</a>
+</div>
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+    private bool _chromeUnavailable;
+
+    // Conservés entre le prérendu et le circuit interactif pour ne pas rappeler l'API deux fois.
+    [PersistentState]
+    public SiteSettingsDto? Settings { get; set; }
+
+    [PersistentState]
+    public SiteNavigationItemDto[]? Navigation { get; set; }
+
+    private IReadOnlyList<SiteNavigationItemDto> NavigationItems => Navigation ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Settings is not null && Navigation is not null)
+        {
+            return;
+        }
+
+        // L'en-tête et le pied de page doivent s'afficher même si l'API ne répond pas :
+        // on journalise et on garde une présentation minimale au lieu de remonter l'erreur.
+        try
+        {
+            var settingsTask = SiteContent.GetSettingsAsync();
+            var navigationTask = SiteContent.GetNavigationAsync();
+            await Task.WhenAll(settingsTask, navigationTask);
+            Settings = settingsTask.Result;
+            Navigation = navigationTask.Result;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            Logger.LogError(exception, "Impossible de charger les paramètres ou la navigation du site depuis l'API.");
+            _chromeUnavailable = true;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Une nouvelle navigation efface l'erreur affichée par la page précédente.
+        _errorBoundary?.Recover();
+    }
+}

@@ -1,0 +1,54 @@
+@* Variante « roles » : un onglet par élément, image propre à l'élément ou image de la section. *@
+@{
+    var content = Section.Content;
+    var items = Items(content);
+    var active = items.Count == 0 ? default : items[Math.Clamp(_activeIndex, 0, items.Count - 1)];
+    var image = items.Count == 0 ? string.Empty : Text(active, "imageUrl", Text(content, "imageUrl"));
+}
+<section class="roles-section">
+    <SectionHeading Kicker="@Text(content, "kicker")" Heading="@Section.Heading" Body="@Section.Body" />
+    @if (items.Count > 0)
+    {
+        <div class="role-tabs" role="tablist" aria-label="@Section.Heading">
+            @for (var i = 0; i < items.Count; i++)
+            {
+                var index = i;
+                <button type="button" role="tab"
+                        id="@($"role-tab-{Section.Id}-{index}")"
+                        class="@(index == _activeIndex ? "active" : null)"
+                        aria-selected="@(index == _activeIndex ? "true" : "false")"
+                        aria-controls="@($"role-panel-{Section.Id}")"
+                        @onclick="() => _activeIndex = index">
+                    @Text(items[index], "title")
+                </button>
+            }
+        </div>
+        <div class="role-panel @(string.IsNullOrWhiteSpace(image) ? "no-image" : null)" role="tabpanel"
+             id="@($"role-panel-{Section.Id}")" aria-labelledby="@($"role-tab-{Section.Id}-{_activeIndex}")">
+            <div class="role-copy">
+                @if (Has(active, "eyebrow"))
+                {
+                    <span>@Text(active, "eyebrow")</span>
+                }
+                <h3>@Text(active, "headline", Text(active, "title"))</h3>
+                <p>@Text(active, "description")</p>
+                @if (Has(active, "actionLabel"))
+                {
+                    <a href="@Text(active, "actionUrl", "/demo")">@Text(active, "actionLabel") <Icon Name="arrow" Size="17" /></a>
+                }
+            </div>
+            @if (!string.IsNullOrWhiteSpace(image))
+            {
+                <div class="role-image">
+                    <img src="@image" alt="@Text(active, "imageAlt", Text(active, "title"))" />
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private int _activeIndex;
+
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+}

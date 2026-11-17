@@ -1,0 +1,31 @@
+﻿@page "/Error"
+@attribute [ExcludeFromInteractiveRouting]
+@using System.Diagnostics
+
+<PageTitle>Erreur</PageTitle>
+
+<section class="not-found" role="alert">
+    <span>Erreur</span>
+    <h1>Une erreur s'est produite.</h1>
+    <p class="not-found-text">Le site n'a pas pu traiter votre demande. Réessayez dans quelques instants.</p>
+    @if (ShowRequestId)
+    {
+        <p class="not-found-text">Référence de la demande : <code>@RequestId</code></p>
+    }
+    <a class="button primary large" href="/">Revenir à l'accueil</a>
+</section>
+
+@code {
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    [PersistentState]
+    public string? RequestId { get; set; }
+
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+
+    protected override void OnInitialized()
+    {
+        RequestId ??= Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+    }
+}

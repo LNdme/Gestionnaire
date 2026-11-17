@@ -1,0 +1,192 @@
+@*
+    Sections « cards » et « steps ». La présentation suit content.variant lorsqu'il est fourni par l'API :
+      flow      parcours numéroté avec icônes (défaut, moins de 4 éléments)
+      features  grille de cartes à icônes (défaut à partir de 4 éléments)
+      roles     onglets par rôle, image facultative par élément (item.imageUrl)
+      values    grille de valeurs numérotées
+      editorial grille éditoriale, sous-éléments dans item.items
+      split     texte + image en alternance (défaut si content.imageUrl)
+      pricing   offre + liste « toujours inclus » (défaut si content.actionLabel)
+*@
+@{
+    var content = Section.Content;
+    var items = Items(content);
+}
+@switch (Variant)
+{
+    case "split":
+        <section class="detail-split @(Index % 2 == 1 ? "reverse" : null)">
+            <div class="detail-copy">
+                <span class="detail-number">@Number(Index)</span>
+                @if (!string.IsNullOrWhiteSpace(Section.Heading))
+                {
+                    <h2>@Section.Heading</h2>
+                }
+                @if (!string.IsNullOrWhiteSpace(Section.Body))
+                {
+                    <p>@Section.Body</p>
+                }
+                @if (items.Count > 0)
+                {
+                    <ul class="plain-list">
+                        @foreach (var item in items)
+                        {
+                            <li>
+                                <strong>@Text(item, "title")</strong>
+                                @if (Has(item, "description"))
+                                {
+                                    <span>@Text(item, "description")</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                <SectionAction Content="content" Class="text-link section-action" />
+            </div>
+            @if (Has(content, "imageUrl"))
+            {
+                <div class="detail-visual">
+                    <img src="@Text(content, "imageUrl")" alt="@Text(content, "imageAlt")" loading="lazy" />
+                </div>
+            }
+        </section>
+        break;
+
+    case "pricing":
+        <section class="pricing-detail">
+            <article>
+                @if (!string.IsNullOrWhiteSpace(Section.Heading))
+                {
+                    <span class="plan-label">@Section.Heading</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(Section.Body))
+                {
+                    <h2>@Section.Body</h2>
+                }
+                @if (Has(content, "description"))
+                {
+                    <p>@Text(content, "description")</p>
+                }
+                <SectionAction Content="content" Class="button primary large" />
+            </article>
+            <div>
+                @if (Has(content, "listTitle"))
+                {
+                    <h3>@Text(content, "listTitle")</h3>
+                }
+                <ul class="included-list">
+                    @foreach (var item in items)
+                    {
+                        <li>
+                            <strong>@Text(item, "title")</strong>
+                            <span>@Text(item, "description")</span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </section>
+        break;
+
+    case "roles":
+        <RolesSection Section="Section" />
+        break;
+
+    case "values":
+    case "editorial":
+        <section class="grid-section">
+            <SectionHeading Kicker="@Text(content, "kicker")" Heading="@Section.Heading" Body="@Section.Body" Class="section-intro" />
+            <div class="@(Variant == "values" ? "values-grid" : "editorial-grid")">
+                @for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    var subItems = Strings(item, "items");
+                    <article>
+                        <span>@Number(i)</span>
+                        <h3>@Text(item, "title")</h3>
+                        <p>@Text(item, "description")</p>
+                        @if (subItems.Count > 0)
+                        {
+                            <ul>
+                                @foreach (var subItem in subItems)
+                                {
+                                    <li>@subItem</li>
+                                }
+                            </ul>
+                        }
+                    </article>
+                }
+            </div>
+        </section>
+        break;
+
+    case "features":
+        <section class="feature-section">
+            <SectionHeading Kicker="@Text(content, "kicker")" Heading="@Section.Heading" Body="@Section.Body" />
+            <div class="feature-grid simple">
+                @for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    <article class="feature-card">
+                        <span class="feature-icon"><Icon Name="@IconFor(item, i)" /></span>
+                        <h3>@Text(item, "title")</h3>
+                        <p>@Text(item, "description")</p>
+                    </article>
+                }
+            </div>
+            <SectionAction Content="content" Class="text-link section-action" />
+        </section>
+        break;
+
+    default:
+        <section class="problem-section">
+            <SectionHeading Kicker="@Text(content, "kicker")" Heading="@Section.Heading" Body="@Section.Body" Class="centered" />
+            <div class="flow-grid" style="--flow-columns: @Math.Clamp(items.Count, 1, 4)">
+                @for (var i = 0; i < items.Count; i++)
+                {
+                    var item = items[i];
+                    <article>
+                        <span class="flow-number">@Number(i)</span>
+                        <div class="flow-icon"><Icon Name="@IconFor(item, i)" Size="23" /></div>
+                        <h3>@Text(item, "title")</h3>
+                        <p>@Text(item, "description")</p>
+                    </article>
+                }
+            </div>
+            <SectionAction Content="content" Class="text-link section-action" />
+        </section>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+
+    /// <summary>Position de la section dans la page (numérotation et alternance gauche/droite).</summary>
+    [Parameter] public int Index { get; set; }
+
+    private string Variant
+    {
+        get
+        {
+            var variant = Text(Section.Content, "variant").Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(variant))
+            {
+                return variant;
+            }
+
+            if (Has(Section.Content, "actionLabel") && !Has(Section.Content, "imageUrl"))
+            {
+                return "pricing";
+            }
+
+            if (Has(Section.Content, "imageUrl"))
+            {
+                return "split";
+            }
+
+            return Items(Section.Content).Count >= 4 ? "features" : "flow";
+        }
+    }
+
+    private static string IconFor(JsonElement item, int index) =>
+        Text(item, "icon", Icon.Rotation[index % Icon.Rotation.Length]);
+}

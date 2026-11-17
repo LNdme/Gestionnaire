@@ -1,0 +1,14 @@
+.vs/
+**/bin/
+**/obj/
+**/node_modules/
+
+.env
+.env.*
+!.env.example
+**/etat.json
+
+*.user
+*.suo
+*.userosscache
+*.sln.docstates

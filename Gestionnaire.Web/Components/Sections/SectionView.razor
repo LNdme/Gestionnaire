@@ -1,0 +1,39 @@
+@* Aiguillage d'une section de l'API vers le composant de présentation correspondant à son type. *@
+@switch (Section.Type.Trim().ToLowerInvariant())
+{
+    case "hero":
+        <HeroSection Page="Page" Section="Section" />
+        break;
+    case "cards":
+    case "steps":
+        <CardsSection Section="Section" Index="Index" />
+        break;
+    case "faq":
+        <FaqSection Section="Section" IsLanding="IsLanding" />
+        break;
+    case "text":
+        <TextSection Section="Section" />
+        break;
+    case "demo-form":
+        <DemoFormSection Page="Page" Section="Section" />
+        break;
+    case "cta":
+        <CtaSection Kicker="@Text(Section.Content, "kicker")"
+                    Heading="@Section.Heading"
+                    ActionLabel="@Text(Section.Content, "actionLabel")"
+                    ActionUrl="@Text(Section.Content, "actionUrl", "/demo")" />
+        break;
+    default:
+        @* Type inconnu : le titre et le texte restent lisibles plutôt que de disparaître. *@
+        <section class="problem-section">
+            <SectionHeading Heading="@Section.Heading" Body="@Section.Body" />
+        </section>
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public SitePageDto Page { get; set; } = default!;
+    [Parameter, EditorRequired] public SitePageSectionDto Section { get; set; } = default!;
+    [Parameter] public int Index { get; set; }
+    [Parameter] public bool IsLanding { get; set; }
+}

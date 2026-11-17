@@ -1,0 +1,95 @@
+@implements IDisposable
+@inject NavigationManager Navigation
+
+@* Bandeau de contact au-dessus de l'en-tête (grands écrans) : vidéo de démo, appel direct et WhatsApp. *@
+@if (Settings is not null && (!string.IsNullOrWhiteSpace(Settings.DemoVideoUrl) ||
+                              ContactPhone.IsSet(Settings.ContactPhone) || ContactPhone.IsSet(Settings.ContactWhatsApp)))
+{
+    <div class="top-bar">
+        <div class="top-bar-inner">
+            <DemoVideoButton Settings="Settings" CssClass="top-bar-video" IconSize="14" />
+            <div class="top-bar-contact">
+                @if (ContactPhone.IsSet(Settings.ContactPhone))
+                {
+                    <span>Une question ?</span>
+                    <a href="@ContactPhone.CallHref(Settings.ContactPhone)">
+                        <Icon Name="phone" Size="15" /> Appelez le <strong>@ContactPhone.Display(Settings.ContactPhone)</strong>
+                    </a>
+                }
+                @if (ContactPhone.IsSet(Settings.ContactWhatsApp))
+                {
+                    <a class="top-bar-whatsapp" href="@ContactPhone.WhatsAppHref(Settings.ContactWhatsApp)" target="_blank" rel="noopener">
+                        <Icon Name="whatsapp" Size="15" /> WhatsApp
+                    </a>
+                }
+                @if (!string.IsNullOrWhiteSpace(Settings.ContactHours))
+                {
+                    <span class="top-bar-hours">@Settings.ContactHours</span>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<header class="site-header">
+    <div class="nav-wrap">
+        <Brand Settings="Settings" />
+
+        <nav id="site-navigation" class="@(_menuOpen ? "nav-links open" : "nav-links")" aria-label="Navigation principale">
+            @foreach (var item in Items)
+            {
+                <NavLink href="@item.Url" ActiveClass="nav-active" @onclick="CloseMenu">@item.Label</NavLink>
+            }
+            @if (Settings is not null)
+            {
+                <a class="mobile-login" href="@Settings.LoginUrl">@Settings.LoginLabel</a>
+                <DemoVideoButton Settings="Settings" CssClass="mobile-video" />
+                <a class="button primary mobile-cta" href="@Settings.DemoActionUrl" @onclick="CloseMenu">@Settings.DemoActionLabel</a>
+                <CallButtons Settings="Settings" Variant="mobile-call" Size="large" />
+            }
+        </nav>
+
+        @if (Settings is not null)
+        {
+            <div class="nav-actions">
+                <a href="@Settings.LoginUrl">@Settings.LoginLabel</a>
+                <a class="button primary small" href="@Settings.DemoActionUrl">@Settings.DemoActionLabel</a>
+            </div>
+        }
+
+        <button class="menu-button" type="button"
+                aria-controls="site-navigation"
+                aria-label="@(_menuOpen ? "Fermer le menu" : "Ouvrir le menu")"
+                aria-expanded="@(_menuOpen ? "true" : "false")"
+                @onclick="ToggleMenu">
+            <Icon Name="@(_menuOpen ? "x" : "menu")" Size="24" />
+        </button>
+    </div>
+</header>
+
+@code {
+    private bool _menuOpen;
+
+    [Parameter]
+    public SiteSettingsDto? Settings { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<SiteNavigationItemDto> Items { get; set; } = [];
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    private void ToggleMenu() => _menuOpen = !_menuOpen;
+
+    private void CloseMenu() => _menuOpen = false;
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (_menuOpen)
+        {
+            _menuOpen = false;
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+}
